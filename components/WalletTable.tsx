@@ -1,5 +1,6 @@
 import type { Transaction, Wallet } from "@/lib/types";
-import { formatRelative, formatTimestamp, truncateHash } from "@/lib/format";
+import type { BalanceResult } from "@/lib/gateway";
+import { formatAmount, formatRelative, formatTimestamp, truncateHash } from "@/lib/format";
 import { EmptyState } from "./EmptyState";
 
 /**
@@ -23,12 +24,47 @@ function lastActivityByWallet(transactions: Transaction[]): Map<string, string> 
   return latest;
 }
 
+/**
+ * One balance cell. The balance is read per wallet from the chain, so each
+ * has three possible states — a figure, "not found" (the gateway has the
+ * wallet indexed but the contract does not know it), or a lookup that
+ * failed — and each shows in place without affecting the other rows.
+ */
+function BalanceCell({ result }: { result?: BalanceResult }) {
+  if (!result) {
+    return (
+      <span className="text-ink-400" title="Balance not loaded">
+        —
+      </span>
+    );
+  }
+  if ("balance" in result) {
+    return <span>{formatAmount(result.balance)}</span>;
+  }
+  const notFound = result.error === "WalletNotFound";
+  return (
+    <span
+      className="text-ink-400 text-xs"
+      title={
+        notFound
+          ? "Indexed by the gateway, but the contract has no balance for it"
+          : `Balance lookup failed: ${result.error}`
+      }
+    >
+      {notFound ? "not on-chain" : "unavailable"}
+    </span>
+  );
+}
+
 export function WalletTable({
   wallets,
   transactions = [],
+  balances,
 }: {
   wallets: Wallet[];
   transactions?: Transaction[];
+  /** Per-wallet balance lookups, keyed by phone hash. Omitted when balances weren't fetched. */
+  balances?: Map<string, BalanceResult>;
 }) {
   if (wallets.length === 0) {
     return (
@@ -70,8 +106,8 @@ export function WalletTable({
                     {truncateHash(wallet.phoneHash)}
                   </span>
                 </td>
-                <td className="text-ink-500 px-4 py-3">
-                  <span title="Balances live on-chain; the gateway does not expose them">—</span>
+                <td className="tabular px-4 py-3">
+                  <BalanceCell result={balances?.get(wallet.phoneHash)} />
                 </td>
                 <td className="tabular px-4 py-3">
                   {active ? (
@@ -91,9 +127,9 @@ export function WalletTable({
 
       <p className="border-ink-100 text-ink-500 border-t px-4 py-3 text-xs">
         Phone hashes are SHA-256 digests — the gateway never stores or serves a raw phone number, so
-        there is no number here to reveal. Balances are held on-chain by the KoboDial contract and
-        are not exposed by the gateway&apos;s API; last activity is derived from the transactions
-        loaded on this page.
+        there is no number here to reveal. Balances are read per wallet from the KoboDial contract
+        at load time, so a slow or unreachable lookup shows in its own cell rather than blanking the
+        table; last activity is derived from the transactions loaded on this page.
       </p>
     </div>
   );

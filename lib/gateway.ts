@@ -120,6 +120,68 @@ export async function fetchWallets(page: Page = {}): Promise<PagedResult<Wallet>
   return paged(body.wallets, body, page);
 }
 
+/**
+ * One wallet's balance lookup. Resolves for every outcome the table must
+ * render differently — a figure, or a reason there isn't one — rather than
+ * throwing, so a single failed lookup shows in its own cell instead of
+ * blanking the whole page.
+ *
+ * The balance stays a string end to end: it is an i128 on-chain and would
+ * lose precision as a JS number.
+ */
+export type BalanceResult =
+  { phoneHash: string; balance: string } | { phoneHash: string; error: string };
+
+export async function fetchBalance(phoneHash: string): Promise<BalanceResult> {
+  let response: Response;
+  try {
+    response = await fetch(`${GATEWAY_URL}/wallets/${phoneHash}/balance`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { accept: "application/json" },
+    });
+  } catch {
+    return { phoneHash, error: "unreachable" };
+  }
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    body = {};
+  }
+  if (response.ok) {
+    return { phoneHash, balance: String((body as { balance: string }).balance) };
+  }
+  const err = (body as { error?: string }).error;
+  return { phoneHash, error: err ?? `HTTP ${response.status}` };
+}
+
+/**
+ * Balances for a page of wallets, fetched with bounded concurrency.
+ *
+ * A page can hold up to 200 wallets and each balance is its own round trip
+ * to the chain. Done serially the page would wait on 200 sequential calls;
+ * done all at once it would open 200 sockets and hammer the RPC. A small
+ * fixed width is the middle path. When the gateway gains a batch endpoint
+ * this becomes a single call — tracked in the gateway's issues.
+ */
+export async function fetchBalances(
+  phoneHashes: string[],
+  concurrency = 8,
+): Promise<Map<string, BalanceResult>> {
+  const results = new Map<string, BalanceResult>();
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (cursor < phoneHashes.length) {
+      const hash = phoneHashes[cursor++]!;
+      results.set(hash, await fetchBalance(hash));
+    }
+  }
+  const width = Math.min(concurrency, phoneHashes.length);
+  await Promise.all(Array.from({ length: width }, () => worker()));
+  return results;
+}
+
 export async function fetchAgents(page: Page = {}): Promise<PagedResult<Agent>> {
   const body = await getJson<{ agents: Agent[] } & Partial<PagedResult<Agent>>>(
     `/agents${query({ limit: page.limit, offset: page.offset })}`,
