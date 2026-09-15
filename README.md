@@ -52,8 +52,8 @@ approving.
 **Overview** — wallet count, transaction volume, success/failure counts,
 recent activity, and a live gateway health badge.
 
-**Wallets** — phone hashes registered through the gateway, with derived
-last-activity.
+**Wallets** — phone hashes registered through the gateway, each with its
+on-chain balance and derived last-activity.
 
 ![Wallets](docs/screenshots/wallets.png)
 
@@ -68,21 +68,19 @@ the customer simply mistyped.
 
 ![Agents](docs/screenshots/agents.png)
 
-## Two things the UI is honest about
-
-**Balances aren't shown.** The wallets table renders an em dash, not a
-number. Balances live on-chain in the contract, and the gateway
-deliberately doesn't cache them — its wallets table is only an index of
-which phone hashes registered through it. Showing a balance would mean
-adding an endpoint to the gateway that reads the contract. The table
-says so rather than inventing a figure.
+## One thing the UI is honest about
 
 **Phone hashes are digests, not masked numbers.** The gateway never
 stores a raw phone number — only a SHA-256 hash. This holds for agents
 too: registering one sends the number to the gateway, which stores its
-hash, so the Agents table shows a truncated digest and no callable
-number. Truncation is for legibility; there is no hidden number behind
-it.
+hash, so the tables show a truncated digest and no callable number.
+Truncation is for legibility; there is no hidden number behind it.
+
+Balances are read per wallet from the contract at load time. Each lookup
+is its own round trip, so they are fetched with bounded concurrency and a
+failed lookup shows in its own cell — "unavailable", or "not on-chain"
+for a wallet the gateway indexed but the contract has no balance for —
+rather than blanking the table.
 
 ## Setup
 
@@ -168,9 +166,8 @@ is readable rather than lost:
 
 Resolved since the first release, once the gateway grew the endpoints they
 needed: real agent storage (#2 → gateway#4), and server-side filtering and
-paging (#3 → gateway#2, gateway#3). The one gap the UI still admits to is
-[#1 Show balances](https://github.com/kobodial/kobodial-dashboard/issues/1),
-now unblocked by the gateway's balance endpoint.
+paging (#3 → gateway#2, gateway#3). Balances (#1 → gateway#1) are shown too, read per wallet from the
+contract.
 
 ## License
 

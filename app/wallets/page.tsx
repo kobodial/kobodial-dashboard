@@ -1,4 +1,10 @@
-import { fetchTransactions, fetchWallets, GatewayUnavailableError } from "@/lib/gateway";
+import {
+  fetchBalances,
+  fetchTransactions,
+  fetchWallets,
+  GatewayUnavailableError,
+  type BalanceResult,
+} from "@/lib/gateway";
 import type { Transaction, Wallet } from "@/lib/types";
 import { GatewayUnavailable } from "@/components/GatewayUnavailable";
 import { Pagination } from "@/components/Pagination";
@@ -24,6 +30,7 @@ export default async function WalletsPage({
 
   let wallets: Wallet[] = [];
   let transactions: Transaction[] = [];
+  let balances = new Map<string, BalanceResult>();
   let total = 0;
   let failure: string | undefined;
 
@@ -37,6 +44,10 @@ export default async function WalletsPage({
     wallets = walletPage.rows;
     total = walletPage.total;
     transactions = transactionPage.rows;
+    // Balances are a per-wallet read against the chain, fetched only for
+    // the wallets actually on this page. Failures are captured per wallet
+    // rather than thrown, so one bad lookup does not blank the table.
+    balances = await fetchBalances(wallets.map((w) => w.phoneHash));
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
   }
@@ -52,7 +63,7 @@ export default async function WalletsPage({
         <GatewayUnavailable detail={failure} />
       ) : (
         <>
-          <WalletTable wallets={wallets} transactions={transactions} />
+          <WalletTable wallets={wallets} transactions={transactions} balances={balances} />
           <Pagination
             basePath="/wallets"
             offset={offset}
