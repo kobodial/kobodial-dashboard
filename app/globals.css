@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind 4 keeps theme configuration in CSS. This is an operational
+ * tool read in bright rooms and on cheap monitors, so the palette is
+ * deliberately plain: one accent, strong neutrals, and status colours
+ * that differ in more than hue.
+ */
+@theme {
+  --color-ink-50: oklch(0.985 0.002 250);
+  --color-ink-100: oklch(0.96 0.003 250);
+  --color-ink-200: oklch(0.91 0.005 250);
+  --color-ink-300: oklch(0.84 0.007 250);
+  --color-ink-500: oklch(0.58 0.012 250);
+  --color-ink-700: oklch(0.38 0.016 250);
+  --color-ink-900: oklch(0.22 0.02 250);
+
+  --color-brand-50: oklch(0.96 0.03 165);
+  --color-brand-500: oklch(0.62 0.13 165);
+  --color-brand-600: oklch(0.55 0.13 165);
+  --color-brand-700: oklch(0.46 0.12 165);
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-ink-50);
+  color: var(--color-ink-900);
+}
+
+/* Tabular figures keep amount and timestamp columns aligned down a table. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
