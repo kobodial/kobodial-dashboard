@@ -10,9 +10,9 @@ function StubNotice() {
     <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4">
       <h2 className="text-sm font-semibold text-amber-900">Agents are not stored yet</h2>
       <p className="mt-1 max-w-3xl text-sm text-amber-900">
-        kobodial-gateway has no agents endpoint, so this page keeps its list in the dashboard&apos;s
-        own memory. That means it <strong>resets whenever the server restarts</strong> — on a
-        serverless host, every cold start — and two instances would each hold a different list.
+        kobodial-gateway has no agents endpoint, so this page keeps its list in a scratch file on
+        the server. That means it <strong>does not survive a redeploy</strong> — and on a serverless
+        host it is wiped on a cold start, with each instance holding its own copy.
       </p>
       <p className="mt-2 max-w-3xl text-sm text-amber-900">
         Registering an agent here is useful for walking through the flow, not for keeping records.
@@ -47,7 +47,7 @@ export default async function AgentsPage() {
           {agents.length === 0 ? (
             <EmptyState
               title="No agents registered"
-              hint="Add one with the form. Remember the list is held in memory and will not survive a restart."
+              hint="Add one with the form. Remember this list is scratch storage and will not survive a redeploy."
             />
           ) : (
             <div className="border-ink-200 overflow-x-auto rounded-lg border bg-white">
