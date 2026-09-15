@@ -1,0 +1,106 @@
+import type { GatewayHealth, Transaction, Wallet } from "./types";
+
+/**
+ * Typed client for kobodial-gateway's read-only REST API.
+ *
+ * Every call runs on the server — from a server component or a route
+ * handler — never from the browser. That is deliberate: the gateway
+ * sends no CORS headers, so a browser fetching it directly from another
+ * origin would be blocked. Rendering server-side sidesteps that
+ * entirely, and has the nicer side effect that a page arrives with its
+ * data already in the HTML rather than after a spinner.
+ */
+
+export const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000").replace(
+  /\/+$/,
+  "",
+);
+
+/**
+ * Raised when the gateway cannot be reached or answers with something
+ * unusable. Pages catch this and render an explicit "gateway
+ * unavailable" state — never a blank screen or a spinner that never
+ * resolves.
+ */
+export class GatewayUnavailableError extends Error {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = "GatewayUnavailableError";
+  }
+}
+
+/** Requests are given a bounded deadline so an unreachable gateway fails visibly instead of hanging the render. */
+const REQUEST_TIMEOUT_MS = 8_000;
+
+async function getJson<T>(path: string): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${GATEWAY_URL}${path}`, {
+      // Operational data: always current, never a cached view of a
+      // transaction feed that has since moved on.
+      cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { accept: "application/json" },
+    });
+  } catch (err) {
+    throw new GatewayUnavailableError(
+      `Could not reach the gateway at ${GATEWAY_URL}${path}`,
+      err,
+    );
+  }
+
+  if (!response.ok) {
+    throw new GatewayUnavailableError(
+      `Gateway responded ${response.status} for ${path}`,
+    );
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch (err) {
+    throw new GatewayUnavailableError(`Gateway returned a non-JSON body for ${path}`, err);
+  }
+}
+
+export interface Page {
+  limit?: number;
+  offset?: number;
+}
+
+function pageQuery({ limit, offset }: Page): string {
+  const params = new URLSearchParams();
+  if (limit !== undefined) params.set("limit", String(limit));
+  if (offset !== undefined) params.set("offset", String(offset));
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function fetchWallets(page: Page = {}): Promise<Wallet[]> {
+  const body = await getJson<{ wallets: Wallet[] }>(`/wallets${pageQuery(page)}`);
+  return body.wallets ?? [];
+}
+
+export async function fetchTransactions(page: Page = {}): Promise<Transaction[]> {
+  const body = await getJson<{ transactions: Transaction[] }>(`/transactions${pageQuery(page)}`);
+  return body.transactions ?? [];
+}
+
+/**
+ * Health is the one call that resolves rather than throws when the
+ * gateway is down — "unreachable" is itself the answer a health badge
+ * needs to display, not an exception it has to handle.
+ */
+export async function fetchHealth(): Promise<{ reachable: boolean; health?: GatewayHealth; error?: string }> {
+  try {
+    const health = await getJson<GatewayHealth>("/health");
+    return { reachable: true, health };
+  } catch (err) {
+    return {
+      reachable: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
