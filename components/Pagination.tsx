@@ -1,24 +1,33 @@
 import Link from "next/link";
 
 /**
- * Pagination over an API that reports no total count. The gateway's list
- * endpoints return a page and nothing else — no total, no "has more" —
- * so this infers the end the only way available: a page shorter than the
- * limit is the last one. That means Next is disabled exactly when a full
- * page happens to be the final page, which costs one empty page at worst
- * and never shows a wrong total.
+ * Pagination over the gateway's list endpoints, which report how many
+ * rows match the request as well as returning the page itself.
+ *
+ * That total is what makes the position honest: "Showing 26-50 of 143"
+ * rather than the old inference, where the end of the list was guessed
+ * from receiving a short page and Next stayed enabled on a final page
+ * that happened to be full.
+ *
+ * When a filter is active the total counts the filtered set, so an empty
+ * view reads as "0 of 0" — nothing matched — rather than looking like
+ * rows are being withheld.
  */
 export function Pagination({
   basePath,
   offset,
   limit,
   count,
+  total,
   extraParams = {},
 }: {
   basePath: string;
   offset: number;
   limit: number;
+  /** Rows on this page. */
   count: number;
+  /** Rows matching the request across all pages. */
+  total: number;
   extraParams?: Record<string, string | undefined>;
 }) {
   const buildHref = (nextOffset: number) => {
@@ -32,9 +41,11 @@ export function Pagination({
   };
 
   const hasPrev = offset > 0;
-  const hasNext = count === limit;
+  const hasNext = offset + count < total;
   const first = count === 0 ? 0 : offset + 1;
   const last = offset + count;
+  const page = Math.floor(offset / limit) + 1;
+  const pages = Math.max(1, Math.ceil(total / limit));
 
   const linkClass =
     "border-ink-200 text-ink-700 hover:bg-ink-100 rounded-md border bg-white px-3 py-1.5 text-sm font-medium transition-colors";
@@ -44,7 +55,9 @@ export function Pagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-ink-500 text-sm">
-        {count === 0 ? "No rows on this page" : `Showing ${first}–${last}`}
+        {total === 0
+          ? "No matching rows"
+          : `Showing ${first}–${last} of ${total} · page ${page} of ${pages}`}
       </p>
       <div className="flex gap-2">
         {hasPrev ? (

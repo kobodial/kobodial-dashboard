@@ -24,15 +24,19 @@ export default async function WalletsPage({
 
   let wallets: Wallet[] = [];
   let transactions: Transaction[] = [];
+  let total = 0;
   let failure: string | undefined;
 
   try {
     // Transactions come along to derive each wallet's last activity —
     // the gateway's /wallets has no such field.
-    [wallets, transactions] = await Promise.all([
+    const [walletPage, transactionPage] = await Promise.all([
       fetchWallets({ limit, offset }),
       fetchTransactions({ limit: 200 }),
     ]);
+    wallets = walletPage.rows;
+    total = walletPage.total;
+    transactions = transactionPage.rows;
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
   }
@@ -49,7 +53,13 @@ export default async function WalletsPage({
       ) : (
         <>
           <WalletTable wallets={wallets} transactions={transactions} />
-          <Pagination basePath="/wallets" offset={offset} limit={limit} count={wallets.length} />
+          <Pagination
+            basePath="/wallets"
+            offset={offset}
+            limit={limit}
+            count={wallets.length}
+            total={total}
+          />
         </>
       )}
     </div>

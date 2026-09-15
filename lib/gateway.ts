@@ -64,22 +64,74 @@ export interface Page {
   offset?: number;
 }
 
-function pageQuery({ limit, offset }: Page): string {
-  const params = new URLSearchParams();
-  if (limit !== undefined) params.set("limit", String(limit));
-  if (offset !== undefined) params.set("offset", String(offset));
-  const query = params.toString();
-  return query ? `?${query}` : "";
+/** Filters the gateway applies server-side, over all history rather than one page. */
+export interface TransactionQuery extends Page {
+  kind?: string;
+  status?: string;
 }
 
-export async function fetchWallets(page: Page = {}): Promise<Wallet[]> {
-  const body = await getJson<{ wallets: Wallet[] }>(`/wallets${pageQuery(page)}`);
-  return body.wallets ?? [];
+/**
+ * A page of rows together with how many exist in total.
+ *
+ * `total` counts every row matching the request's filters, not the rows
+ * returned — so a filtered view can say how many matches exist rather
+ * than inferring the end of the list from a short page.
+ */
+export interface PagedResult<T> {
+  rows: T[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
-export async function fetchTransactions(page: Page = {}): Promise<Transaction[]> {
-  const body = await getJson<{ transactions: Transaction[] }>(`/transactions${pageQuery(page)}`);
-  return body.transactions ?? [];
+function query(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  const encoded = search.toString();
+  return encoded ? `?${encoded}` : "";
+}
+
+/**
+ * Older gateway builds answered with a bare `{ wallets: [...] }` and no
+ * total. Falling back to the row count keeps this client working against
+ * one rather than rendering "0 of 0" over a full table — the count is
+ * then merely the page size, which is what the old inference gave anyway.
+ */
+function paged<T>(
+  rows: T[] | undefined,
+  body: Partial<PagedResult<T>>,
+  fallback: Page,
+): PagedResult<T> {
+  const list = rows ?? [];
+  return {
+    rows: list,
+    total: body.total ?? list.length,
+    limit: body.limit ?? fallback.limit ?? list.length,
+    offset: body.offset ?? fallback.offset ?? 0,
+  };
+}
+
+export async function fetchWallets(page: Page = {}): Promise<PagedResult<Wallet>> {
+  const body = await getJson<{ wallets: Wallet[] } & Partial<PagedResult<Wallet>>>(
+    `/wallets${query({ limit: page.limit, offset: page.offset })}`,
+  );
+  return paged(body.wallets, body, page);
+}
+
+export async function fetchTransactions(
+  params: TransactionQuery = {},
+): Promise<PagedResult<Transaction>> {
+  const body = await getJson<{ transactions: Transaction[] } & Partial<PagedResult<Transaction>>>(
+    `/transactions${query({
+      limit: params.limit,
+      offset: params.offset,
+      kind: params.kind,
+      status: params.status,
+    })}`,
+  );
+  return paged(body.transactions, body, params);
 }
 
 /**

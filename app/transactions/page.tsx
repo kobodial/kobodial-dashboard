@@ -23,15 +23,20 @@ export default async function TransactionsPage({
   const kind = params.kind && KINDS.has(params.kind) ? params.kind : undefined;
 
   let transactions: Transaction[] = [];
+  let total = 0;
   let failure: string | undefined;
 
   try {
-    transactions = await fetchTransactions({ limit, offset });
+    // The filter goes to the gateway, which applies it across all history.
+    // This page used to fetch a page and narrow it here, which answered a
+    // different question: the cash-outs among the newest 25 rows, rather
+    // than the newest cash-outs.
+    const result = await fetchTransactions({ limit, offset, kind });
+    transactions = result.rows;
+    total = result.total;
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
   }
-
-  const visible = kind ? transactions.filter((tx) => tx.kind === kind) : transactions;
 
   return (
     <div className="space-y-6">
@@ -48,21 +53,14 @@ export default async function TransactionsPage({
         <>
           <TransactionFilter active={kind} limit={limit} />
 
-          {kind ? (
-            <p className="text-ink-500 text-sm">
-              Showing {visible.length} of {transactions.length} loaded rows. The gateway&apos;s API
-              has no type filter, so this narrows the current page rather than searching all
-              history.
-            </p>
-          ) : null}
-
-          <TransactionFeed transactions={visible} />
+          <TransactionFeed transactions={transactions} />
 
           <Pagination
             basePath="/transactions"
             offset={offset}
             limit={limit}
             count={transactions.length}
+            total={total}
             extraParams={{ kind }}
           />
         </>
