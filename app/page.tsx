@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { fetchTransactions, fetchWallets, GatewayUnavailableError } from "@/lib/gateway";
 import { formatAmount } from "@/lib/format";
-import type { Transaction, Wallet } from "@/lib/types";
+import type { Transaction } from "@/lib/types";
 import { GatewayUnavailable } from "@/components/GatewayUnavailable";
 import { HealthBadge } from "@/components/HealthBadge";
 import { StatCard } from "@/components/StatCard";
@@ -53,15 +53,25 @@ function Explainer() {
 }
 
 export default async function OverviewPage() {
-  let wallets: Wallet[] = [];
   let transactions: Transaction[] = [];
+  let walletTotal = 0;
+  let transactionTotal = 0;
   let failure: string | undefined;
 
   try {
-    [wallets, transactions] = await Promise.all([
-      fetchWallets({ limit: 200 }),
+    const [walletPage, transactionPage] = await Promise.all([
+      // Only the count is shown for wallets, and the gateway reports it
+      // independently of the page — so ask for one row rather than 200.
+      fetchWallets({ limit: 1 }),
       fetchTransactions({ limit: 200 }),
     ]);
+    transactions = transactionPage.rows;
+    // Counts come from the gateway's own totals, not from the rows
+    // fetched here: these calls are capped, so a row count would
+    // silently plateau at the cap and read as a real figure rather
+    // than a truncated one.
+    walletTotal = walletPage.total;
+    transactionTotal = transactionPage.total;
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
   }
@@ -90,7 +100,7 @@ export default async function OverviewPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Wallets"
-              value={String(wallets.length)}
+              value={String(walletTotal)}
               hint="Registered through this gateway"
             />
             <StatCard
@@ -98,7 +108,15 @@ export default async function OverviewPage() {
               value={formatAmount(totalVolume(transactions).toString())}
               hint="Successful transfers and cash movements"
             />
-            <StatCard label="Successful" value={String(successful)} hint="Recent transactions" />
+            <StatCard
+              label="Successful"
+              value={String(successful)}
+              hint={
+                transactionTotal > transactions.length
+                  ? `Of the ${transactions.length} most recent of ${transactionTotal}`
+                  : "All recorded transactions"
+              }
+            />
             <StatCard
               label="Failed"
               value={String(failed)}
