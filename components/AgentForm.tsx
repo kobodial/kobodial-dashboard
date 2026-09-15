@@ -9,8 +9,9 @@ import type { AgentValidationError } from "@/lib/agents";
  *
  * A client component because it is the one genuinely interactive thing
  * in the dashboard — everything else is a server-rendered read. It
- * posts to this app's own /api/agents, not to the gateway, because the
- * gateway has no agents endpoint yet (see lib/agents.ts).
+ * posts to this app's own /api/agents, which forwards to the gateway
+ * server-side — the gateway sends no CORS headers, so the browser cannot
+ * post to it directly.
  */
 export function AgentForm() {
   const router = useRouter();
@@ -43,12 +44,24 @@ export function AgentForm() {
       });
 
       if (response.status === 400) {
-        const body = (await response.json()) as { errors?: AgentValidationError[] };
-        setErrors(body.errors ?? []);
+        const body = (await response.json()) as {
+          errors?: AgentValidationError[];
+          error?: string;
+        };
+        // Field-level issues render inline; a single-string 400 (an error
+        // the gateway phrased its own way) shows as a form-level message.
+        if (body.errors?.length) {
+          setErrors(body.errors);
+        } else {
+          setFailure(body.error ?? "The agent could not be registered.");
+        }
         return;
       }
       if (!response.ok) {
-        setFailure(`Could not register the agent (HTTP ${response.status}).`);
+        // 409 (already registered) and 502 (gateway down) both arrive with
+        // a message from the route; show it rather than a bare status.
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        setFailure(body.error ?? `Could not register the agent (HTTP ${response.status}).`);
         return;
       }
 
@@ -104,7 +117,8 @@ export function AgentForm() {
           inputMode="tel"
         />
         <p className="text-ink-500 mt-1 text-xs">
-          The agent&apos;s own number, for operators to reach them — not a customer wallet.
+          The agent&apos;s own number, not a customer wallet. The gateway stores only its hash, the
+          same as every other number in the system.
         </p>
         {errorFor("phone") ? (
           <p className="mt-1 text-xs text-red-700">{errorFor("phone")}</p>
