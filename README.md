@@ -68,7 +68,7 @@ the customer simply mistyped.
 
 ![Agents](docs/screenshots/agents.png)
 
-## Three things the UI is honest about
+## Two things the UI is honest about
 
 **Balances aren't shown.** The wallets table renders an em dash, not a
 number. Balances live on-chain in the contract, and the gateway
@@ -77,15 +77,12 @@ which phone hashes registered through it. Showing a balance would mean
 adding an endpoint to the gateway that reads the contract. The table
 says so rather than inventing a figure.
 
-**Agents aren't really stored.** The gateway has no agents endpoint, so
-that page keeps its list in a scratch file on the server. It doesn't
-survive a redeploy, and on a serverless host it's wiped on a cold start.
-The page says this above the form, because discovering it after entering
-twenty agents would be worse.
-
 **Phone hashes are digests, not masked numbers.** The gateway never
-stores a raw phone number — only a SHA-256 hash. Truncation in the
-tables is for legibility; there is no hidden number behind it.
+stores a raw phone number — only a SHA-256 hash. This holds for agents
+too: registering one sends the number to the gateway, which stores its
+hash, so the Agents table shows a truncated digest and no callable
+number. Truncation is for legibility; there is no hidden number behind
+it.
 
 ## Setup
 
@@ -165,19 +162,15 @@ is readable rather than lost:
   documents as its own posture too. Worth reading for why the current
   public deployment does not match that assumption.
 - [#5 Agent commission calculations](https://github.com/kobodial/kobodial-dashboard/issues/5)
-  — blocked on the gateway recording _which_ agent handled a transaction,
-  which it currently does not.
+  — blocked on the gateway recording _which_ agent handled a transaction
+  ([gateway#11](https://github.com/kobodial/kobodial-gateway/issues/11)),
+  which it does not yet.
 
-The two gaps the UI admits to above are tracked as well, each blocked on
-gateway work rather than on anything here:
-
-- [#1 Show balances](https://github.com/kobodial/kobodial-dashboard/issues/1)
-  → [gateway#1](https://github.com/kobodial/kobodial-gateway/issues/1)
-- [#2 Real agent storage](https://github.com/kobodial/kobodial-dashboard/issues/2)
-  → [gateway#4](https://github.com/kobodial/kobodial-gateway/issues/4)
-- [#3 Server-side filtering and paging](https://github.com/kobodial/kobodial-dashboard/issues/3)
-  → [gateway#2](https://github.com/kobodial/kobodial-gateway/issues/2),
-  [gateway#3](https://github.com/kobodial/kobodial-gateway/issues/3)
+Resolved since the first release, once the gateway grew the endpoints they
+needed: real agent storage (#2 → gateway#4), and server-side filtering and
+paging (#3 → gateway#2, gateway#3). The one gap the UI still admits to is
+[#1 Show balances](https://github.com/kobodial/kobodial-dashboard/issues/1),
+now unblocked by the gateway's balance endpoint.
 
 ## License
 

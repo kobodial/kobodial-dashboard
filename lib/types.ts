@@ -47,13 +47,21 @@ export interface GatewayHealth {
   error?: string;
 }
 
-/** A cash-in/cash-out agent. See lib/agents.ts — this is a dashboard-side stub. */
+/**
+ * A cash-in/cash-out agent, as the gateway stores it.
+ *
+ * The phone number is a SHA-256 hash, not a raw number: the gateway hashes
+ * it on registration like every other phone number in the system. There is
+ * no callable number here — see the gateway's agents table.
+ */
 export interface Agent {
-  id: string;
+  id: number;
   name: string;
   /** Where the agent operates — a town, market or kiosk name. */
   location: string;
-  /** E.164, the agent's own contact number. Agents are staff, not wallet users. */
-  phone: string;
+  /** SHA-256 hex of the agent's phone number. */
+  phoneHash: string;
+  status: "active" | "suspended";
+  /** ISO 8601, as the gateway serialises its timestamps. */
   createdAt: string;
 }
