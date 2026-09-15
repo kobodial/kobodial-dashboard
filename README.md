@@ -10,6 +10,8 @@ Named for the **kobo**, the smallest unit of the Nigerian Naira.
 > phone. This is the back office: cash-in/cash-out agents and system
 > operators, watching what the system did.
 
+**Live:** <https://kobodial-dashboard.vercel.app>
+
 ![Overview](docs/screenshots/overview.png)
 
 ## The three repos
@@ -143,10 +145,15 @@ from going blank.
 
 ## Deployment
 
-Any host that runs Next.js. Set `NEXT_PUBLIC_GATEWAY_API_URL` to a
-gateway your deployment can actually reach over the public internet — a
-`localhost` gateway is not reachable from a hosted dashboard, which is
-the most common way this comes up misconfigured.
+Deployed on Vercel at <https://kobodial-dashboard.vercel.app>, which
+runs as a standard Next.js project with no adapter or custom build step.
+
+Any host that runs Next.js will do. The one setting that matters is
+`NEXT_PUBLIC_GATEWAY_API_URL`: it must name a gateway the deployment can
+actually reach over the public internet. A `localhost` value is the most
+common way this comes up misconfigured — the hosted dashboard resolves
+it to itself, finds nothing, and correctly reports the gateway as
+unreachable.
 
 ## Out of scope for the MVP
 
