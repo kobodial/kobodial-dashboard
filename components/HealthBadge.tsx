@@ -39,7 +39,7 @@ export async function HealthBadge() {
   }
 
   return (
-    <span className="ring-brand-500/20 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset">
+    <span className="ring-brand-500/20 bg-brand-50 text-brand-700 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset">
       <span aria-hidden className="bg-brand-500 size-1.5 rounded-full" />
       Gateway online
     </span>

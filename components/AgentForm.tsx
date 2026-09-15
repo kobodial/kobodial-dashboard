@@ -74,9 +74,7 @@ export function AgentForm() {
           Agent name
         </label>
         <input id="name" name="name" className={`${fieldClass} mt-1`} placeholder="Amina Yusuf" />
-        {errorFor("name") ? (
-          <p className="mt-1 text-xs text-red-700">{errorFor("name")}</p>
-        ) : null}
+        {errorFor("name") ? <p className="mt-1 text-xs text-red-700">{errorFor("name")}</p> : null}
       </div>
 
       <div>
@@ -117,7 +115,7 @@ export function AgentForm() {
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{failure}</p>
       ) : null}
       {saved ? (
-        <p className="rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-700">
+        <p className="bg-brand-50 text-brand-700 rounded-md px-3 py-2 text-sm">
           Registered {saved}.
         </p>
       ) : null}

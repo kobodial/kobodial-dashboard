@@ -7,10 +7,16 @@ import type { TransactionStatus } from "@/lib/types";
  * agent nothing they can act on, while "InvalidPin" tells them the
  * customer mistyped and should try again.
  */
-export function StatusPill({ status, errorCode }: { status: TransactionStatus; errorCode?: string | null }) {
+export function StatusPill({
+  status,
+  errorCode,
+}: {
+  status: TransactionStatus;
+  errorCode?: string | null;
+}) {
   if (status === "success") {
     return (
-      <span className="inline-flex items-center rounded-md bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 ring-1 ring-brand-500/20 ring-inset">
+      <span className="bg-brand-50 text-brand-700 ring-brand-500/20 inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset">
         Success
       </span>
     );

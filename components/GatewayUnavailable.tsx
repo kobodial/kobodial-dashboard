@@ -22,7 +22,7 @@ export function GatewayUnavailable({ detail }: { detail?: string }) {
       <dl className="mt-4 space-y-1 text-sm">
         <div className="flex flex-wrap gap-x-2">
           <dt className="font-medium text-red-900">Tried:</dt>
-          <dd className="font-mono text-xs text-red-800 break-all">{GATEWAY_URL}</dd>
+          <dd className="font-mono text-xs break-all text-red-800">{GATEWAY_URL}</dd>
         </div>
         {detail ? (
           <div className="flex flex-wrap gap-x-2">

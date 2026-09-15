@@ -2,7 +2,7 @@
   "name": "kobodial-dashboard",
   "version": "0.1.0",
   "private": true,
-  "description": "Agent and operator dashboard for KoboDial — a read-only view over the kobodial-gateway API",
+  "description": "Agent and operator dashboard for KoboDial \u2014 a read-only view over the kobodial-gateway API",
   "license": "MIT",
   "engines": {
     "node": ">=20.9.0"
@@ -21,12 +21,11 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "3.3.7",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.5.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "eslint": "10.10.0",
+    "eslint": "9.39.5",
     "eslint-config-next": "16.3.5",
     "postcss": "8.5.28",
     "prettier": "3.9.6",

@@ -41,9 +41,7 @@ export default async function WalletsPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Wallets</h1>
-        <p className="text-ink-500 mt-1 text-sm">
-          Phone hashes registered through this gateway.
-        </p>
+        <p className="text-ink-500 mt-1 text-sm">Phone hashes registered through this gateway.</p>
       </div>
 
       {failure ? (

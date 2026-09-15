@@ -11,10 +11,9 @@ import type { GatewayHealth, Transaction, Wallet } from "./types";
  * data already in the HTML rather than after a spinner.
  */
 
-export const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000").replace(
-  /\/+$/,
-  "",
-);
+export const GATEWAY_URL = (
+  process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000"
+).replace(/\/+$/, "");
 
 /**
  * Raised when the gateway cannot be reached or answers with something
@@ -46,16 +45,11 @@ async function getJson<T>(path: string): Promise<T> {
       headers: { accept: "application/json" },
     });
   } catch (err) {
-    throw new GatewayUnavailableError(
-      `Could not reach the gateway at ${GATEWAY_URL}${path}`,
-      err,
-    );
+    throw new GatewayUnavailableError(`Could not reach the gateway at ${GATEWAY_URL}${path}`, err);
   }
 
   if (!response.ok) {
-    throw new GatewayUnavailableError(
-      `Gateway responded ${response.status} for ${path}`,
-    );
+    throw new GatewayUnavailableError(`Gateway responded ${response.status} for ${path}`);
   }
 
   try {
@@ -93,7 +87,11 @@ export async function fetchTransactions(page: Page = {}): Promise<Transaction[]>
  * gateway is down — "unreachable" is itself the answer a health badge
  * needs to display, not an exception it has to handle.
  */
-export async function fetchHealth(): Promise<{ reachable: boolean; health?: GatewayHealth; error?: string }> {
+export async function fetchHealth(): Promise<{
+  reachable: boolean;
+  health?: GatewayHealth;
+  error?: string;
+}> {
   try {
     const health = await getJson<GatewayHealth>("/health");
     return { reachable: true, health };

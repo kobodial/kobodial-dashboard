@@ -24,8 +24,7 @@ export function TransactionFilter({ active, limit }: { active?: string; limit: n
     return `/transactions?${params.toString()}`;
   };
 
-  const base =
-    "rounded-md px-3 py-1.5 text-sm font-medium transition-colors border";
+  const base = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors border";
   const on = "border-brand-600 bg-brand-600 text-white";
   const off = "border-ink-200 bg-white text-ink-700 hover:bg-ink-100";
 
@@ -35,11 +34,7 @@ export function TransactionFilter({ active, limit }: { active?: string; limit: n
         All
       </Link>
       {KINDS.map((kind) => (
-        <Link
-          key={kind}
-          href={href(kind)}
-          className={`${base} ${active === kind ? on : off}`}
-        >
+        <Link key={kind} href={href(kind)} className={`${base} ${active === kind ? on : off}`}>
           {kindLabel(kind)}
         </Link>
       ))}

@@ -1,5 +1,11 @@
 import type { Transaction } from "@/lib/types";
-import { formatAmount, formatRelative, formatTimestamp, kindLabel, truncateHash } from "@/lib/format";
+import {
+  formatAmount,
+  formatRelative,
+  formatTimestamp,
+  kindLabel,
+  truncateHash,
+} from "@/lib/format";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";
 
@@ -98,7 +104,9 @@ export function TransactionFeed({
                   <span className="text-ink-300">—</span>
                 )}
               </td>
-              <td className="tabular px-4 py-3 text-right font-medium">{formatAmount(tx.amount)}</td>
+              <td className="tabular px-4 py-3 text-right font-medium">
+                {formatAmount(tx.amount)}
+              </td>
               <td className="px-4 py-3">
                 <StatusPill status={tx.status} errorCode={tx.errorCode} />
               </td>
@@ -111,13 +119,16 @@ export function TransactionFeed({
                     href={explorerUrl(tx.txHash)}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="text-brand-700 font-mono text-xs underline underline-offset-2 hover:text-brand-600"
+                    className="text-brand-700 hover:text-brand-600 font-mono text-xs underline underline-offset-2"
                     title={tx.txHash}
                   >
                     {truncateHash(tx.txHash, 6, 4)}
                   </a>
                 ) : (
-                  <span className="text-ink-300" title="This attempt failed before it was submitted">
+                  <span
+                    className="text-ink-300"
+                    title="This attempt failed before it was submitted"
+                  >
                     —
                   </span>
                 )}
