@@ -157,9 +157,27 @@ unreachable.
 
 ## Out of scope for the MVP
 
-Authentication (this assumes trusted internal access) and agent
-commission calculations — both tracked as issues rather than
-half-built. Real agent storage belongs on the gateway.
+Left out deliberately rather than half-built, and tracked so the reasoning
+is readable rather than lost:
+
+- [#4 Authentication](https://github.com/kobodial/kobodial-dashboard/issues/4)
+  — the dashboard assumes trusted network access, which the gateway
+  documents as its own posture too. Worth reading for why the current
+  public deployment does not match that assumption.
+- [#5 Agent commission calculations](https://github.com/kobodial/kobodial-dashboard/issues/5)
+  — blocked on the gateway recording _which_ agent handled a transaction,
+  which it currently does not.
+
+The two gaps the UI admits to above are tracked as well, each blocked on
+gateway work rather than on anything here:
+
+- [#1 Show balances](https://github.com/kobodial/kobodial-dashboard/issues/1)
+  → [gateway#1](https://github.com/kobodial/kobodial-gateway/issues/1)
+- [#2 Real agent storage](https://github.com/kobodial/kobodial-dashboard/issues/2)
+  → [gateway#4](https://github.com/kobodial/kobodial-gateway/issues/4)
+- [#3 Server-side filtering and paging](https://github.com/kobodial/kobodial-dashboard/issues/3)
+  → [gateway#2](https://github.com/kobodial/kobodial-gateway/issues/2),
+  [gateway#3](https://github.com/kobodial/kobodial-gateway/issues/3)
 
 ## License
 
