@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { fetchTransactions, fetchWallets, GatewayUnavailableError } from "@/lib/gateway";
+import {
+  fetchTransactions,
+  fetchWallets,
+  GatewayUnavailableError,
+  type GatewayFailure,
+} from "@/lib/gateway";
 import { formatAmount } from "@/lib/format";
 import type { Transaction } from "@/lib/types";
 import { GatewayUnavailable } from "@/components/GatewayUnavailable";
@@ -57,6 +62,7 @@ export default async function OverviewPage() {
   let walletTotal = 0;
   let transactionTotal = 0;
   let failure: string | undefined;
+  let failureReason: GatewayFailure = "unreachable";
 
   try {
     const [walletPage, transactionPage] = await Promise.all([
@@ -74,6 +80,7 @@ export default async function OverviewPage() {
     transactionTotal = transactionPage.total;
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
+    failureReason = err instanceof GatewayUnavailableError ? err.reason : "unreachable";
   }
 
   const successful = transactions.filter((tx) => tx.status === "success").length;
@@ -94,7 +101,7 @@ export default async function OverviewPage() {
       <Explainer />
 
       {failure ? (
-        <GatewayUnavailable detail={failure} />
+        <GatewayUnavailable detail={failure} reason={failureReason} />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

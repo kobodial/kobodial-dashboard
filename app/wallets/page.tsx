@@ -3,6 +3,7 @@ import {
   fetchTransactions,
   fetchWallets,
   GatewayUnavailableError,
+  type GatewayFailure,
   type BalanceResult,
 } from "@/lib/gateway";
 import type { Transaction, Wallet } from "@/lib/types";
@@ -33,6 +34,7 @@ export default async function WalletsPage({
   let balances = new Map<string, BalanceResult>();
   let total = 0;
   let failure: string | undefined;
+  let failureReason: GatewayFailure = "unreachable";
 
   try {
     // Transactions come along to derive each wallet's last activity —
@@ -50,6 +52,7 @@ export default async function WalletsPage({
     balances = await fetchBalances(wallets.map((w) => w.phoneHash));
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
+    failureReason = err instanceof GatewayUnavailableError ? err.reason : "unreachable";
   }
 
   return (
@@ -60,7 +63,7 @@ export default async function WalletsPage({
       </div>
 
       {failure ? (
-        <GatewayUnavailable detail={failure} />
+        <GatewayUnavailable detail={failure} reason={failureReason} />
       ) : (
         <>
           <WalletTable wallets={wallets} transactions={transactions} balances={balances} />
