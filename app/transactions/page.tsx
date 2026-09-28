@@ -1,4 +1,4 @@
-import { fetchTransactions, GatewayUnavailableError } from "@/lib/gateway";
+import { fetchTransactions, GatewayUnavailableError, type GatewayFailure } from "@/lib/gateway";
 import type { Transaction } from "@/lib/types";
 import { GatewayUnavailable } from "@/components/GatewayUnavailable";
 import { Pagination } from "@/components/Pagination";
@@ -25,6 +25,7 @@ export default async function TransactionsPage({
   let transactions: Transaction[] = [];
   let total = 0;
   let failure: string | undefined;
+  let failureReason: GatewayFailure = "unreachable";
 
   try {
     // The filter goes to the gateway, which applies it across all history.
@@ -36,6 +37,7 @@ export default async function TransactionsPage({
     total = result.total;
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
+    failureReason = err instanceof GatewayUnavailableError ? err.reason : "unreachable";
   }
 
   return (
@@ -48,7 +50,7 @@ export default async function TransactionsPage({
       </div>
 
       {failure ? (
-        <GatewayUnavailable detail={failure} />
+        <GatewayUnavailable detail={failure} reason={failureReason} />
       ) : (
         <>
           <TransactionFilter active={kind} limit={limit} />

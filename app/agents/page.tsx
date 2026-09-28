@@ -1,4 +1,4 @@
-import { fetchAgents, GatewayUnavailableError } from "@/lib/gateway";
+import { fetchAgents, GatewayUnavailableError, type GatewayFailure } from "@/lib/gateway";
 import type { Agent } from "@/lib/types";
 import { formatTimestamp, truncateHash } from "@/lib/format";
 import { AgentForm } from "@/components/AgentForm";
@@ -22,11 +22,13 @@ function StatusPill({ status }: { status: Agent["status"] }) {
 export default async function AgentsPage() {
   let agents: Agent[] = [];
   let failure: string | undefined;
+  let failureReason: GatewayFailure = "unreachable";
 
   try {
     agents = (await fetchAgents({ limit: 200 })).rows;
   } catch (err) {
     failure = err instanceof GatewayUnavailableError ? err.message : String(err);
+    failureReason = err instanceof GatewayUnavailableError ? err.reason : "unreachable";
   }
 
   return (
@@ -39,7 +41,7 @@ export default async function AgentsPage() {
       </div>
 
       {failure ? (
-        <GatewayUnavailable detail={failure} />
+        <GatewayUnavailable detail={failure} reason={failureReason} />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,24rem)_1fr]">
           <section className="space-y-3">

@@ -11,9 +11,37 @@ import type { Agent, GatewayHealth, Transaction, Wallet } from "./types";
  * data already in the HTML rather than after a spinner.
  */
 
-export const GATEWAY_URL = (
-  process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "http://localhost:3000"
-).replace(/\/+$/, "");
+const CONFIGURED_URL = process.env.NEXT_PUBLIC_GATEWAY_API_URL;
+
+export const GATEWAY_URL = (CONFIGURED_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+
+/**
+ * Whether this build is pointed at a gateway that could plausibly exist.
+ *
+ * The localhost default is useful in development and impossible in
+ * production, where it produces a deploy that builds cleanly, renders every
+ * page as unavailable, and reports nothing. That has already happened here:
+ * the deployed dashboard sat pointing at localhost after the gateway's tunnel
+ * URL stopped existing, and nothing failed loudly enough to notice.
+ *
+ * The variable is inlined at build time, so a changed gateway URL needs a
+ * redeploy, not a settings edit — another way to end up in the same state.
+ */
+export function gatewayConfigError(
+  env: string | undefined = CONFIGURED_URL,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+): string | null {
+  if (nodeEnv !== "production") {
+    return null;
+  }
+  if (!env || env.trim() === "") {
+    return "NEXT_PUBLIC_GATEWAY_API_URL is not set, so this build falls back to http://localhost:3000, which cannot work in production.";
+  }
+  if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(env.trim())) {
+    return `NEXT_PUBLIC_GATEWAY_API_URL points at ${env.trim()}, which is this server rather than a reachable gateway.`;
+  }
+  return null;
+}
 
 /**
  * Raised when the gateway cannot be reached or answers with something
@@ -21,9 +49,17 @@ export const GATEWAY_URL = (
  * unavailable" state — never a blank screen or a spinner that never
  * resolves.
  */
+/**
+ * Why the gateway could not be used. The distinction is what the reader needs:
+ * a gateway waking from idle is a wait, a misconfigured URL is a deploy to
+ * redo, and neither should read like the other.
+ */
+export type GatewayFailure = "timeout" | "unreachable" | "status" | "body" | "misconfigured";
+
 export class GatewayUnavailableError extends Error {
   constructor(
     message: string,
+    readonly reason: GatewayFailure = "unreachable",
     readonly cause?: unknown,
   ) {
     super(message);
@@ -31,10 +67,26 @@ export class GatewayUnavailableError extends Error {
   }
 }
 
-/** Requests are given a bounded deadline so an unreachable gateway fails visibly instead of hanging the render. */
-const REQUEST_TIMEOUT_MS = 8_000;
+/**
+ * Deadline for a gateway request.
+ *
+ * Sized for a cold start, not a warm response. The gateway runs on an
+ * instance type that sleeps when idle and can take the better part of a
+ * minute to wake, so the previous 8s deadline guaranteed a failure on the
+ * first visit after a quiet period — the visit most likely to be someone
+ * evaluating the project.
+ *
+ * It still has to sit inside the hosting platform's own function limit, or
+ * the platform ends the render first and this timeout never runs.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000;
 
 async function getJson<T>(path: string): Promise<T> {
+  const configError = gatewayConfigError();
+  if (configError) {
+    throw new GatewayUnavailableError(configError, "misconfigured");
+  }
+
   let response: Response;
   try {
     response = await fetch(`${GATEWAY_URL}${path}`, {
@@ -45,17 +97,26 @@ async function getJson<T>(path: string): Promise<T> {
       headers: { accept: "application/json" },
     });
   } catch (err) {
-    throw new GatewayUnavailableError(`Could not reach the gateway at ${GATEWAY_URL}${path}`, err);
+    // AbortSignal.timeout rejects with a TimeoutError; anything else here is
+    // a connection that could not be made at all.
+    const timedOut = err instanceof DOMException && err.name === "TimeoutError";
+    throw new GatewayUnavailableError(
+      timedOut
+        ? `The gateway did not respond within ${REQUEST_TIMEOUT_MS / 1000}s`
+        : `Could not reach the gateway at ${GATEWAY_URL}${path}`,
+      timedOut ? "timeout" : "unreachable",
+      err,
+    );
   }
 
   if (!response.ok) {
-    throw new GatewayUnavailableError(`Gateway responded ${response.status} for ${path}`);
+    throw new GatewayUnavailableError(`Gateway responded ${response.status} for ${path}`, "status");
   }
 
   try {
     return (await response.json()) as T;
   } catch (err) {
-    throw new GatewayUnavailableError(`Gateway returned a non-JSON body for ${path}`, err);
+    throw new GatewayUnavailableError(`Gateway returned a non-JSON body for ${path}`, "body", err);
   }
 }
 
@@ -216,7 +277,14 @@ export async function createAgent(input: NewAgent): Promise<CreateAgentResult> {
       body: JSON.stringify(input),
     });
   } catch (err) {
-    throw new GatewayUnavailableError(`Could not reach the gateway at ${GATEWAY_URL}/agents`, err);
+    const timedOut = err instanceof DOMException && err.name === "TimeoutError";
+    throw new GatewayUnavailableError(
+      timedOut
+        ? `The gateway did not respond within ${REQUEST_TIMEOUT_MS / 1000}s`
+        : `Could not reach the gateway at ${GATEWAY_URL}/agents`,
+      timedOut ? "timeout" : "unreachable",
+      err,
+    );
   }
 
   let body: unknown;
