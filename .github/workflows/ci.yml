@@ -7,7 +7,7 @@ on:
 
 jobs:
   check:
-    name: lint, typecheck, build
+    name: lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +30,9 @@ jobs:
       # type error as a type error rather than as a failed build step.
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       # The build needs no gateway: every page catches
       # GatewayUnavailableError and renders its unavailable state, so a
