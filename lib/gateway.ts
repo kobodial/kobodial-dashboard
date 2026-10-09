@@ -110,7 +110,18 @@ async function getJson<T>(path: string): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new GatewayUnavailableError(`Gateway responded ${response.status} for ${path}`, "status");
+    // A host that sleeps when idle answers 502/503/504 while it wakes, rather
+    // than holding the connection open. Reported as "status" those read as
+    // "the gateway is broken", when the truthful answer is "it is starting, a
+    // reload will work" — and this is the response a first-time visitor to a
+    // demo link is most likely to get.
+    const waking = [502, 503, 504].includes(response.status);
+    throw new GatewayUnavailableError(
+      waking
+        ? `The gateway is starting up (HTTP ${response.status})`
+        : `Gateway responded ${response.status} for ${path}`,
+      waking ? "timeout" : "status",
+    );
   }
 
   try {
